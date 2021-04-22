@@ -1,0 +1,157 @@
+openapi: 3.0.0
+servers:
+  - url: http://localhost
+    description: Local Api
+info:
+  version: "0.0.1"
+  title: Wallet Settings Service
+security:
+  - bearerAuth: []
+paths:
+  /settings/private/v1/config:
+    put:
+      security:
+        - bearerAuth: []
+      tags:
+        - Config
+      summary: Updates an existing configs.
+      description: Available for admins. Available for admins with "view_modify_settings" permission.
+      operationId: UpdateConfigsHandler
+      requestBody:
+        $ref: '#/components/requestBodies/ConfigArray'
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AllConfigsResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not Found
+        '500':
+          description: Internal server error
+
+  /settings/private/v1/config/{path}:
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - Config
+      summary: Shows a list of configs path.
+      description: |
+        Available for admins.
+      operationId: ListConfigHandler
+      parameters:
+        - name: path
+          in: path
+          description: "The path is constructed as: section/group/field. Parameter `section` is required. Available values for `section`: regional, profile"
+          required: true
+          schema:
+            type: string
+          example: "profile/user-options"
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AllConfigsResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not Found
+        '500':
+          description: Internal server error
+  /settings/public/v1/config/{path}:
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - Config
+      summary: Shows a list of public configs by path.
+      operationId: ListPublicConfigHandler
+      parameters:
+        - name: path
+          in: path
+          description: "The path is constructed as: section/group/field. Parameter `section` is required. Available values for `section`: regional, profile"
+          required: true
+          schema:
+            type: string
+          example: "profile/user-options"
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AllConfigsResponse'
+        '404':
+          description: Not Found
+        '500':
+          description: Internal server error
+
+components:
+  schemas:
+    Config:
+      type: object
+      properties:
+        path:
+          type: string
+          description: "The path is constructed as: section/group/field."
+          example: "regional/general/site_name"
+          maxLength: 255
+        value:
+          type: string
+          description: "The value."
+      required:
+        - path
+
+    ConfigResponse:
+      type: object
+      properties:
+        path:
+          type: string
+          description: "The path is constructed as: section/group/field."
+          example: "regional/general/site_name"
+          maxLength: 255
+        value:
+          type: string
+          description: "The value."
+        scope:
+          type: string
+          example: "private"
+    AllConfigsResponse:
+      type: "object"
+      properties:
+        data:
+          type: "array"
+          items:
+            $ref: "#/components/schemas/ConfigResponse"
+
+  requestBodies:
+    ConfigArray:
+      content:
+        application/json:
+          schema:
+            type: "object"
+            properties:
+              data:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Config'
+            required:
+              - data
+      description: List of config object
+      required: true
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

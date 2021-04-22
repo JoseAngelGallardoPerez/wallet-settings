@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package velmie.wallet.settings;
+option go_package = "settings";
+
+service SettingsHandler {
+    rpc Get(Request) returns (Response);
+    rpc List(Request) returns (Response);
+}
+
+message Setting {
+    string path = 1;
+    string value = 2;
+}
+
+message Request {
+    string path = 1;
+}
+
+message Response {
+    Setting setting = 1;
+    repeated Setting settings = 2;
+    Error error = 3;
+}
+
+message Error {
+    string title = 1;
+    string details = 2;
+}

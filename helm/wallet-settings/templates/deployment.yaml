@@ -1,0 +1,80 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "wallet-settings.name" . }}
+  labels:
+  {{- include "wallet-settings.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+  {{- include "wallet-settings.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+    {{- include "wallet-settings.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "wallet-settings.serviceAccountName" . }}
+      securityContext:
+      {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+          {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ include "wallet-settings.imageRepositoryWithTag" . }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: public-api
+              containerPort: {{ .Values.service.ports.public }}
+            - name: rpc
+              containerPort: {{ .Values.service.ports.rpc }}
+          {{- with .Values.containerPorts }}
+          {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- if .Values.containerLivenessProbe.enabled }}
+          livenessProbe:
+            failureThreshold: {{ .Values.containerLivenessProbe.failureThreshold }}
+            periodSeconds: {{ .Values.containerLivenessProbe.periodSeconds }}
+            httpGet:
+              path: /{{ .Values.appApiPathPrefix }}/health-check
+              port: {{ .Values.service.ports.public }}
+          {{- end }}
+          env:
+            - name: VELMIE_WALLET_SETTINGS_SERVER_PORT
+              value: "{{ required ".Values.service.ports.public is required! Make sure to provide it." .Values.service.ports.public }}"
+            - name: VELMIE_WALLET_SETTINGS_RPC_PORT
+              value: "{{ required ".Values.service.ports.rpc is required! Make sure to provide it." .Values.service.ports.rpc }}"
+            - name: VELMIE_WALLET_SETTINGS_DB_HOST
+              value: "{{ required ".Values.appEnv.dbHost is required! Make sure to provide it." .Values.appEnv.dbHost }}"
+            - name: VELMIE_WALLET_SETTINGS_DB_PORT
+              value: "{{ required ".Values.appEnv.dbPort is required! Make sure to provide it." .Values.appEnv.dbPort }}"
+            - name: VELMIE_WALLET_SETTINGS_DB_NAME
+              value: "{{ required ".Values.appEnv.dbName is required! Make sure to provide it." .Values.appEnv.dbName }}"
+            - name: VELMIE_WALLET_SETTINGS_DB_USER
+              value: "{{ required ".Values.appEnv.dbUser is required! Make sure to provide it." .Values.appEnv.dbUser }}"
+            - name: VELMIE_WALLET_SETTINGS_DB_PASS
+              value: "{{ required ".Values.appEnv.dbPass is required! Make sure to provide it." .Values.appEnv.dbPass }}"
+          resources:
+      {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+  {{- toYaml . | nindent 8 }}
+  {{- end }}
